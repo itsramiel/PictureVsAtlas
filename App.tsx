@@ -1,9 +1,12 @@
 import {
+  Atlas,
   Canvas,
-  Picture,
+  Circle,
   SkPoint,
+  SkRect,
   Skia,
-  createPicture,
+  drawAsImage,
+  rect,
 } from '@shopify/react-native-skia';
 import {StyleSheet, View} from 'react-native';
 import {
@@ -15,6 +18,20 @@ import {
 
 const CIRCLE_RADIUS = 1;
 const CIRCLE_SPEED = 1 / 16; // 1 point per 16 ms
+
+const CIRCLE_COUNT = 1000;
+
+const image = drawAsImage(
+  <Circle cx={0} cy={0} r={CIRCLE_RADIUS} color={'white'} />,
+  {
+    width: 2 * CIRCLE_RADIUS,
+    height: 2 * CIRCLE_RADIUS,
+  },
+);
+
+const sprites = Array.from({length: CIRCLE_COUNT}).map(
+  (): SkRect => rect(0, 0, CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2),
+);
 
 function getRandomNumber(min: number, max: number) {
   'worklet';
@@ -58,22 +75,14 @@ function App() {
     });
   });
 
-  const picture = useDerivedValue(() => {
-    return createPicture(canvas => {
-      const paint = Skia.Paint();
-
-      paint.setColor(Skia.Color('white'));
-
-      circles.value.forEach(circle => {
-        canvas.drawCircle(circle.x, circle.y, CIRCLE_RADIUS, paint);
-      });
-    });
+  const transforms = useDerivedValue(() => {
+    return circles.value.map(circle => Skia.RSXform(1, 0, circle.x, circle.y));
   }, []);
 
   return (
     <View style={styles.screen}>
       <Canvas onSize={size} style={styles.canvas}>
-        <Picture picture={picture} />
+        <Atlas image={image} sprites={sprites} transforms={transforms} />
       </Canvas>
     </View>
   );
