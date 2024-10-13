@@ -1,117 +1,91 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
+  Canvas,
+  Picture,
+  SkPoint,
+  Skia,
+  createPicture,
+} from '@shopify/react-native-skia';
+import {StyleSheet, View} from 'react-native';
 import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  useAnimatedReaction,
+  useDerivedValue,
+  useFrameCallback,
+  useSharedValue,
+} from 'react-native-reanimated';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const CIRCLE_RADIUS = 1;
+const CIRCLE_SPEED = 1 / 16; // 1 point per 16 ms
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function getRandomNumber(min: number, max: number) {
+  'worklet';
+  return Math.random() * (max - min) + min;
+}
+
+function App() {
+  const size = useSharedValue({width: 0, height: 0});
+
+  const circles = useSharedValue<Array<{x: number; y: number}>>([]);
+
+  useAnimatedReaction(
+    () => size.value,
+    currentSize => {
+      circles.value = Array.from({length: 1000}).map(
+        (): SkPoint => ({
+          x: getRandomNumber(CIRCLE_RADIUS, currentSize.width - CIRCLE_RADIUS),
+          y: getRandomNumber(CIRCLE_RADIUS, currentSize.height - CIRCLE_RADIUS),
+        }),
+      );
+    },
+  );
+
+  useFrameCallback(info => {
+    if (!info.timeSincePreviousFrame) return;
+    const timeSincePreviousFrame = info.timeSincePreviousFrame;
+
+    circles.modify(circles => {
+      circles.forEach(circle => {
+        circle.y += CIRCLE_SPEED * timeSincePreviousFrame;
+
+        if (circle.y > size.value.height - CIRCLE_RADIUS) {
+          circle.y = -CIRCLE_RADIUS;
+          circle.x = getRandomNumber(
+            CIRCLE_RADIUS,
+            size.value.width - CIRCLE_RADIUS,
+          );
+        }
+      });
+      return circles;
+    });
+  });
+
+  const picture = useDerivedValue(() => {
+    return createPicture(canvas => {
+      const paint = Skia.Paint();
+
+      paint.setColor(Skia.Color('white'));
+
+      circles.value.forEach(circle => {
+        canvas.drawCircle(circle.x, circle.y, CIRCLE_RADIUS, paint);
+      });
+    });
+  }, []);
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.screen}>
+      <Canvas onSize={size} style={styles.canvas}>
+        <Picture picture={picture} />
+      </Canvas>
     </View>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  screen: {
+    flex: 1,
+    backgroundColor: '#000',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  canvas: {
+    flex: 1,
   },
 });
 
