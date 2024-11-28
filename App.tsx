@@ -22,7 +22,12 @@ const CIRCLE_SPEED = 1 / 16; // 1 point per 16 ms
 const CIRCLE_COUNT = 1000;
 
 const image = drawAsImage(
-  <Circle cx={0} cy={0} r={CIRCLE_RADIUS} color={'white'} />,
+  <Circle
+    cx={CIRCLE_RADIUS}
+    cy={CIRCLE_RADIUS}
+    r={CIRCLE_RADIUS}
+    color={'white'}
+  />,
   {
     width: 2 * CIRCLE_RADIUS,
     height: 2 * CIRCLE_RADIUS,
@@ -46,7 +51,7 @@ function App() {
   useAnimatedReaction(
     () => size.value,
     currentSize => {
-      circles.value = Array.from({length: 1000}).map(
+      circles.value = Array.from({length: CIRCLE_COUNT}).map(
         (): SkPoint => ({
           x: getRandomNumber(CIRCLE_RADIUS, currentSize.width - CIRCLE_RADIUS),
           y: getRandomNumber(CIRCLE_RADIUS, currentSize.height - CIRCLE_RADIUS),
